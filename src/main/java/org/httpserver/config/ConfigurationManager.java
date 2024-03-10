@@ -1,5 +1,6 @@
 package org.httpserver.config;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.httpserver.util.Json;
 
@@ -24,11 +25,11 @@ public class ConfigurationManager {
     /**
      * Used to load configuration file from the path
     */
-    public void loadConfigurationFile(String filePath) {
+    public void loadConfigurationFile(String filePath) throws IOException {
         FileReader fileReader = null;
 
         try {
-            fileReader = new FileReader((filePath));
+            fileReader = new FileReader(filePath);
         } catch (FileNotFoundException error) {
             throw new HttpConfigurationException(error);
         }
@@ -53,11 +54,9 @@ public class ConfigurationManager {
 
         try {
             myCurrentConfiguration = Json.fromJson(config, Configuration.class);
-        } catch (IOException error) {
+        } catch (JsonProcessingException error) {
             throw new HttpConfigurationException("Error while parsing current configuration file", error);
         }
-
-
     }
 
     /**
