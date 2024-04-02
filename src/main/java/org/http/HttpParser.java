@@ -15,18 +15,27 @@ public class HttpParser {
     private static final int CR = 0x80; // 13
     private static final int LF = 0x8A; // 10
 
-    public HttpRequest parseHttpRequest(InputStream inputStream) {
+    public HttpRequest parseHttpRequest(InputStream inputStream) throws HttpParsingException {
         InputStreamReader reader = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
 
         HttpRequest request = new HttpRequest();
-        parseRequestLine(reader, request);
+        try {
+            parseRequestLine(reader, request);
+        } catch (IOException error) {
+            error.printStackTrace();
+        }
+
         parseHeaders(reader, request);
         parseBody(reader, request);
 
         return request;
     }
 
-    private void parseRequestLine(InputStreamReader reader, HttpRequest request) throws IOException {
+    private void parseRequestLine(InputStreamReader reader, HttpRequest request) throws IOException, HttpParsingException {
+        StringBuilder processingDataBuffer = new StringBuilder();
+        boolean methodParsed = false;
+        boolean requestParsed = false;
+
         int _byte;
 
         while ((_byte = reader.read()) >= 0) {
@@ -34,7 +43,32 @@ public class HttpParser {
                 _byte = reader.read();
 
                 if (_byte == LF) {
+                    if (!methodParsed || !requestParsed) {
+                        throw new HttpParsingException(HttpStatusCode.CLIENT_ERROR_400_BAD_REQUEST);
+                    }
                     return;
+                }
+            }
+
+            if (_byte == SP) {
+                // TODO Process previous data
+                if (!methodParsed) {
+                    request.setMethod(processingDataBuffer.toString());
+                    methodParsed = true;
+                } else if (!requestParsed) {
+                    requestParsed = true;
+                } else {
+                    throw new HttpParsingException(HttpStatusCode.CLIENT_ERROR_400_BAD_REQUEST);
+                }
+
+                processingDataBuffer.delete(0, processingDataBuffer.length());
+            } else {
+                processingDataBuffer.append((char) _byte);
+
+                if (!methodParsed) {
+                    if (processingDataBuffer.length() > HttpMethod.MAX_LENGTH) {
+                        throw new HttpParsingException(HttpStatusCode.SERVER_ERROR_501_NOT_IMPLEMENTED);
+                    }
                 }
             }
         }
