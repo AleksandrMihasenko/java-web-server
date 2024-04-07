@@ -29,6 +29,8 @@ class HttpParserTest {
             fail(error);
         }
 
+        assertNotNull(request);
+        assertEquals(request.getRequestTarget(), "/");
         assertEquals(request.getMethod(), HttpMethod.GET);
     }
 
